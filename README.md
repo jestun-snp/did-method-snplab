@@ -1,28 +1,33 @@
 # DID-Method-Specification
 # Abstract
-SNPLab Decentralized Identity Service(SNPLab DID Service) provides the infrastructure for trusted digital identity service for SNPLab MyData Service(MyD).
-SNPLab DID Service is based on blockchain(Hyperledger Indy) and provides a distributed mechanism for generating and verifying DID(Decentralized Identifier).
+SNPLab Decentralized Identity Service(SNPLab DID Service) provides the infrastructure for trusted digital identity service for SNPLab MyData Service(MyD).<br>
+SNPLab DID Service is based on blockchain and provides a distributed mechanism for generating and verifying DID(Decentralized Identifier).
 
 <br />
 
 
 # Introduction
-SNPLab is leading MyData service platform industry in South Korea, to empower individuals by improving their right to self-determination
-regarding their personal data.
-MyD is a personal data trading platform service provided by SNPLab and SNPLab DID Service provides the digital identity service for MyD service.
-SNPLab DID Service provides a mechanism for the distributed and globally unique identifiers(DID, Decentralized Identifier).
+SNPLab is a leading MyData service platform industry in South Korea that empowers individuals by improving their right to self-determination
+regarding their personal data.<br>
+MyD is a personal data trading platform service provided by SNPLab and the SNPLab DID Service provides the digital identity service for MyD service.<br>
+SNPLab DID Service provides a mechanism for distributed and globally unique identifiers(DID, Decentralized Identifier).
 
 <br>
 
 # DID Method Syntax
 
 ## DID Naming Scheme.
-A DID consists of three parts: 1) the `did` URI scheme identifier, 2) the identifier for the DID method, and 3) the DID method-specific identifier.<br>
-The identifier of SNPLab DID method is `snplab`. Therefore, the SNPLab DID starts with `did:snplab:`.<br>
-SNPLab DID Service uses Ed2559 crypto algorithm for DID owner’s private-public key pair.
-The DID method-specific identifier will be the base54 value of the first 16 bytes of DID owner's Ed25519 public key.
+A DID consists of three parts:
+1. The `did` URI scheme identifier.
+2. The identifier for the DID method.
+3. The DID method-specific identifier.
+ - The identifier of SNPLab DID method is `snplab`. So, the SNPLab DID starts with `did:snplab:`.
+ - SNPLab DID Service uses Ed25519 crypto algorithm to generate the private-public key pair associated with the owner's DID.
+ - The DID method-specific identifier will be the base58 encoding of the first 16 bytes of DID owner's Ed25519 public key.
+
+An example of the SNPLab DID
 ```
-The example of SNPLab DID is "did:snplab:V4SGRU86Z58d6TV7PBUe6f"
+"did:snplab:V4SGRU86Z58d6TV7PBUe6f"
 ```
 
 ## DID Document Format
@@ -53,8 +58,8 @@ DID Document format example
 CRUD operations store, read, update and delete the created DID in the blockchain.
 
 ### Getting Nonce
-Nonce is used as a challenge in update and delete operations in order to verify that the DID owner really has the private key for the DID.<br>
-Therefore, the procedure to get a nonce SHOULD be triggered before update and delete operations.
+A nonce is used as a challenge in update and delete operations in order to verify that the DID owner is in possession of the private key associated with the DID.<br>
+Consequently, a nonce SHOULD be acquired before update and delete operations are performed.
 
 Nonce Request curl example
 ```bash
@@ -70,11 +75,15 @@ Nonce response example
 <br>
 
 ### Create Operation
-DID owner creates Ed2559 private-public key pair, and SNPLab DID from from the public key.<br>
-DID owner prepare DID Document and request to register the DID and DID Document into SNPLab DID service by calling REST API(https://did.operation.myd.world/account/register).<br>
-The REST API HTTP request contains DID Document in the request message body.<br>
-SNPLab DID Service will trigger blockchain ledger transcation for the DID and DID Document registration.<br>
-If there is no DID conflict in the blockchain and writing DID and DID Document into blockchain is succeed, SNPLab DID Service will return DID Document with created and updated time information.
+This operation allows the DID owner to register the SNPLab DID and the DID Document.<br>
+
+The create operation is as follows:
+- DID owner creates Ed25519 private-public key pair and prepares the DID Document.
+- The DID Document is submitted to the SNPLab DID service via the REST API(https://did.operation.myd.world/account/register)
+    - The REST API HTTP request SHOULD contain the DID Document in the request message body.<br>
+    - On submission, SNPLab DID Service will trigger blockchain ledger transaction for the DID and DID Document registration.
+    - If there are no DID conflicts in the blockchain and the DID along with the DID Document are written into blockchain, then the operation succeeds,
+- SNPLab DID Service returns the DID Document with created and updated time information.
 
 DID Create(Registration) curl exmaple.
 ```bash
@@ -113,10 +122,14 @@ Create operation response example.
 <br>
 
 ### Read Operation
-Registered DID Document can be accessible by calling read REST API(https://did.operation.myd.world/account/document).<br>
-The HTTP request contains DID in the request message body.
+This operation allows a lookup of a registered DID Document from a DID.
 
-DID Read curl example
+The lookup is performed via the REST API(https://did.operation.myd.world/account/document).<br>
+   - The HTTP request SHOULD contain the DID for lookup in the request message body.<br>
+
+SNPLab DID Service returns the DID Document if there is the matched DID.
+
+DID Read curl example.
 ```bash
 curl -X POST "https://did.operation.myd.world/account/document" \
      -H "accept: application/json" \
@@ -147,13 +160,18 @@ Read operation response example.
 <br>
 
 ### Update Operation
-DID owner can update the public key with new public key by proving out that the DID owner has the private key for the public key.<br>
-DID owner get a nonce from SNPLab DID Service as a chanllenge and generate the signature of the nonce with the private key in order to prove out that the DID owner really has the private key.<br>
-New public key can be updated by calling update REST API(https://did.operation.myd.world/account/update).<br>
-The HTTP request contains the signature of nonce in the request message header.<br>
-The HTTP request contains new DID Document which has new public key in the request message body.<br>
+This operation allows a DID owner to update their public key associated with the DID after proving possession of the existing private key.
 
-Update operation curl example
+The update operation is as follows:
+- DID owner requests a nonce from SNPLab DID Service
+- Generates the signature of the nonce with the private key as a challenge to prove the DID owner's possession of the existing private key.
+- Generates a new DID Document containing the new public key.
+- Updates the DID to associate with a new public key via REST API(https://did.operation.myd.world/account/update).
+   - The HTTP request SHOULD contain the signature of nonce in the request message header.
+   - The HTTP request SHOULD contain the new DID Document which has new public key in the request message body.
+- SNPLab DID Service returns the DID Document with updated public key and updated time information.
+
+DID Update curl example.
 ```bash
 curl -X POST "https://did.operation.myd.world/account/update" \
      -H "accept: application/json" \
@@ -192,13 +210,16 @@ Update operation response example.
 <br>
 
 ### Delete Operation
-DID owner can disable DID and DID Document by proving out that the DID owner has the private key for the public key.<br>
-DID owner get a nonce from SNPLab DID Service as a chanllenge and generate the signature of the nonce with the private key in order to prove out that the DID owner really has the private key.<br>
-DID and DID Document can be disabled by calling delete REST API(https://did.operation.myd.world/account/breakaway).<br>
-The HTTP request contains the signature of nonce in the request message header.<br>
-The HTTP request contains new DID in the request message body.<br>
+This operation allows a DID owner to disable their DID and DID Document by proving possession of the private key associated with the DID.
 
-Delete operation example
+The delete operation is as follows:
+- DID owner requests a nonce from SNPLab DID Service.
+- Generates the signature of the nonce with the private key as a challenge to prove the DID owner's possession of the private key.
+- Disables the DID and DID Document via REST API(https://did.operation.myd.world/account/breakaway).
+   - The HTTP request SHOULD contain the signature of nonce in the request message header.
+   - The HTTP request SHOULD contain the DID to be disabled in the request message body.
+
+DID Delete curl example.
 ```bash
 curl -X POST "https://did.operation.myd.world/account/breakaway" \
      -H "accept: application/json" \
@@ -224,5 +245,5 @@ Delete operation response example.
 
 ## Privacy Considerations
 1. The DID Document of DID does not contain any personal identifiable information (PII).
-2. CRUD operation requests does not contain any personal identifiable information (PII). 
+2. CRUD operation requests does not contain any personal identifiable information (PII).
 3. SNPLab DID service blockchain does not store any personal identifiable information (PII) or credentials.
